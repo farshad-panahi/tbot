@@ -1,61 +1,67 @@
+# MARK:imports
 import logging
 from typing import Final
 from telegram import Update
-from telegram.ext import Application, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
 from decouple import config
+from datetime import datetime as dt
 
+def main():
+    TOKEN: Final = config("TELEGRAM_API_TOKEN")
 
-TOKEN: Final = config("TELEGRAM_API_TOKEN")
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
-
-logging.getLogger('httpx').setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
-
-
-async def say_hello(context:ContextTypes.DEFAULT_TYPE):
-  job = context.job
-  await context.bot.send_message(
-    text='Hello',
-    chat_id=job.chat_id
+    logging.basicConfig(
+      format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      level=logging.INFO
   )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logger = logging.getLogger(__name__)
 
-async def say_hello_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  a = int(context.args[0])
-  if a < 5:
-    await context.bot.send_message(
-      chat_id=update.effective_chat.id,
-      text='please enter a number greater than 5'
-    )
-    return
-  job_name = str(update.effective_chat.id)
-  context.job_queue.run_repeating(
-    say_hello,
-    chat_id=update.effective_chat.id,
-    interval=a,
-    name=job_name,
-  )
-  await context.bot.send_message(
-    chat_id=update.effective_chat.id,
-    text='ok!'
-  )
+    async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Hello, I'm a bot! Thanks for using me!",
+        )
 
-async def unset_handler(update:Update, context:ContextTypes.DEFAULT_TYPE):
-  job = context.job_queue.get_jobs_by_name(str(update.effective_chat.id))
-  for n in job:
-    n.schedule_removal()
+    async def repeat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        words = " ".join(context.args)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"{words}",
+        )
 
-  await context.bot.send_message(
-    chat_id=update.effective_chat.id,
-    text='job removed'
-  )
+    async def time_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        time = dt.now().strftime("%Y-%m-%d %H:%M")
 
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"{time}",
+        )
+    async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"{HELP_COMMAND_RESPONSE}",
+        )
+    async def echo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await context.bot.send_message(
+          chat_id=update.effective_chat.id, text=update.message.text
+      )
+        await context.bot.send_message(
+          chat_id=update.effective_chat.id,
+          text=f"repeated {update.effective_user.first_name}!",
+      )
 
-if __name__ == '__main__':
+    # Create the Application and pass it your bot's token
     application = Application.builder().token(TOKEN).build()
-    application.add_handler("hello", say_hello_handler)
-    application.add_handler("unset", unset_handler)
+    # Command Handler
+    application.add_handler(CommandHandler("start", start_handler))
+    application.add_handler(CommandHandler("repeat", repeat_handler))
+    application.add_handler(CommandHandler("time", time_handler))
+    application.add_handler(CommandHandler("help", time_handler))
 
+    # Message Handler
+    application.add_handler(MessageHandler(filters.TEXT, echo_handler))
+    # Run the Bot
     application.run_polling()
+
+if __name__ == "__main__":
+   main()
