@@ -16,20 +16,37 @@ def main():
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logger = logging.getLogger(__name__)
 
-    async def fact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def add_c_handler(
+            update:Update,
+            context:ContextTypes.DEFAULT_TYPE
+    ):
+        m, n = int(context.args[0]), int(context.args[1])
+
         await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"Hello, I'm a bot! Thanks for using me!",
+            chat_id=update.effective_chat.id, text=f"{n} + {m} = {n + m}"
         )
-    async def fact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        data = requests.get("https://uselessfacts.jsph.pl/api/v2/facts/random")
-        fact = data.json()["text"]
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=fact)
 
-    application = Application.builder().token(TOKEN).build()
-    application.add_handler(CommandHandler("fact", fact_handler))
+    async def mult_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        n, m = int(context.args[0]), int(context.args[1])
 
-    application.run_polling()
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text=f"{n} + {m} = {n * m}"
+        )
+
+    async def ex_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        exp = context.args
+        resp = " ".join(i for i in exp)
+
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text=f"{resp} = {eval(resp)}",
+            reply_to_message_id=update.effective_message.id
+        )
+
+    bot = Application.builder().token(TOKEN).build()
+    bot.add_handler(CommandHandler("add", add_c_handler))
+    bot.add_handler(CommandHandler("mult", mult_handler))
+    bot.add_handler(CommandHandler("ex", ex_handler))
+    bot.run_polling()
 
 if __name__ == "__main__":
    main()
