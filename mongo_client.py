@@ -14,54 +14,51 @@ class ExpenseMongoClient:
         self.collection = self.db.get_collection(collection_name)
 
     def add_expense(self, user_id: int, amount: int, category: str, description: str):
-        self.collection.insert_one(
-            {
-                "user_id": user_id,
-                "amount": amount,
-                "category": category,
-                "description": description,
-            }
-        )
+        # write your code here
+        user = {
+            "user_id": user_id,
+            "amount": amount,
+            "category": category,
+            "description": description,
+        }
+        self.collection.insert_one(user)
 
     def get_expenses(self, user_id: int) -> list:
-        results = self.collection.find()
-        res = []
-        for result in results:
-            if result['user_id'] == user_id:
-                res.append(
-                    {
-                        "amount": result["amount"],
-                        "category": result["category"],
-                        "description": result["description"],
-                    }
-                )
-        return res 
+        # write your code here
+        return list(self.collection.find({"user_id": user_id}))
 
     def get_categories(self, user_id: int) -> list:
-        results = list(self.collection.find({"user_id": user_id}))
-        return [item['category'] for item in results]
+        # write your code here
+        res = self.collection.find({"user_id": user_id})
+        my_list = []
+        for item in res:
+            my_list.append(item["category"])
+        return my_list
 
     def get_expenses_by_category(self, user_id: int, category: str) -> list:
-        results = self.collection.find()
-        res = []
-        for result in results:
-            if result["user_id"] == user_id and result['category'] == category:
-                res.append(
-                    {
-                        "amount": result["amount"],
-                        "category": result["category"],
-                        "description": result["description"],
-                    }
-                )
-        return res
+        # write your code here
+        return list(self.collection.find({"user_id": user_id, "category": category}))
 
     def get_total_expense(self, user_id: int):
-        user_costs = list(self.collection.find({'user_id': user_id}))
-        return sum(item['amount'] for item in user_costs)
+        # write your code here
+        res = self.collection.find({"user_id": user_id})
+        my_sum = 0
+        for item in res:
+            my_sum += item["amount"]
+        return my_sum
 
     def get_total_expense_by_category(self, user_id: int):
-        users_match = list(self.collection.find({"user_id": user_id}))
-        return {user['category']:sum(item['amount'] for item in users_match if item['category']==user['category']) for user in users_match}
+        # write your code here
+        res = self.collection.find({"user_id": user_id})
+        my_dict = {}
+        for i in res:
+            if i["category"] in my_dict:
+                my_dict[i["category"]] += i["amount"]
+            else:
+                my_dict[i["category"]] = i["amount"]
+
+        return my_dict
+
 
 # if __name__ == "__main__":
 #     expense_mongo_client = ExpenseMongoClient("localhost", 27017)
@@ -70,18 +67,3 @@ class ExpenseMongoClient:
 #     expense_mongo_client.add_expense(123, 300, "سفر", "پرواز")
 #     expense_mongo_client.add_expense(321, 400, "غذا", "ناهار")
 #     expense_mongo_client.add_expense(321, 500, "سفر", "پرواز")
-
-#     print("Expenses of 123")
-#     print(expense_mongo_client.get_expenses(123))
-
-#     print("Categories of 123")
-#     print(expense_mongo_client.get_categories(123))
-
-#     print("Total expense of 321")
-#     print(expense_mongo_client.get_total_expense(321))
-
-#     print("Total expense by category of 321")
-#     print(expense_mongo_client.get_total_expense_by_category(321))
-
-#     print("Expenses by category of 123")
-#     print(expense_mongo_client.get_expenses_by_category(123, "غذا"))

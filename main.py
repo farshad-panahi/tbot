@@ -15,10 +15,10 @@ from telegram.ext import (
 
 from mongo_client import ExpenseMongoClient
 
-db_client = ExpenseMongoClient("localhost", 27017)
+db_client = ExpenseMongoClient("0.0.0.0", 27017)
 
 BOT_TOKEN: Final = config("TELEGRAM_API_TOKEN")
-
+print('started')
 
 async def start_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
@@ -30,51 +30,41 @@ async def start_command_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def add_expense_command_handler(
     update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+):  
     amount, category, description = context.args[0], context.args[1], context.args[2:]
-    db_client.add_expense(
-        user_id=str(update.effective_user.id),
-        amount=int(amount),
-        category=category,
-        description=" ".join(description),
-    )
-    context.bot.send_message(
+    db_client.add_expense(user_id=str(update.effective_user.id),amount=str(amount),category=category,description=" ".join(description))
+    await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Expense added successfully!",
-        reply_to_message_id=update.effective_message.id,
+        reply_to_message_id=update.effective_message.id 
     )
-
 
 async def get_expenses_command_handler(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ):
-    user_id = update.effective_user.id
-    expenses = db_client.get_expenses(user_id)
-    categories = db_client.get_categories(user_id)
+    user_id = str(update.effective_user.id)
+
+    expenses = list(db_client.collection.find({"user_id": user_id}))
+
     if len(context.args) == 0:
         text = "Your expenses are:\n"
         for expense in expenses:
-            text += f"{expense['amount']} - {expense['category']} - {expense['description']}\n"
+            text += f"{str(expense['amount'])} - {expense['category']} - {expense['description']}\n"
 
-        context.bot.send_message(
+        await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
             reply_to_message_id=update.effective_message.id,
         )
     elif len(context.args) > 0:
-
         text = "Your expenses are:\n"
-        for expense in expenses:
-            if expense["category"] in context.args[0]:
-                text += f"{expense['amount']} - {expense['category']} - {expense['description']}\n"
-
-        context.bot.send_message(
+        for expense in db_client.get_expenses_by_category(user_id, context.args[0]):
+            text += f"{int(expense['amount'])} - {expense['category']} - {expense['description']}\n"
+        await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
             reply_to_message_id=update.effective_message.id,
         )
-
-
 async def get_categories_command_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -82,10 +72,10 @@ async def get_categories_command_handler(
     user_id = update.effective_user.id
     categories = db_client.get_categories(user_id)
     text = f"Your categories are: {', '.join(categories)}"
-    context.bot.send_message(
+    await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text,
-        reply_to_message_id=update.effective_message.id,
+        reply_to_message_id=update.effective_message.id
     )
 
 
@@ -94,10 +84,10 @@ async def get_total_expense_command_handler(
 ):
     user = update.effective_user.id
     total = db_client.get_total_expense(user)
-    context.bot.send_message(
-        chat_id=update.effective_chat.id,
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, 
         text=f"Your total expense is: {int(total)}",
-        reply_to_message_id=update.effective_message.id,
+        reply_to_message_id=update.effective_message.id
     )
 
 
@@ -105,14 +95,14 @@ async def get_total_expense_by_category_command_handler(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ):
     user_id = update.effective_user.id
-    total_expense = db_client.get_total_expense_by_category(user_id)
+    total_expense= db_client.get_total_expense_by_category(user_id)
     text = "Your total expenses by category are:\n"
     for category, expense in total_expense.items():
         text += f"{category}: {expense}\n"
-    context.bot.send_message(
+    await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text,
-        reply_to_message_id=update.effective_message.id,
+        reply_to_message_id=update.effective_message.id
     )
 
 
